@@ -8,21 +8,10 @@ class CardPushGame {
         this.hand = [null, null];
         this.selectedHandIndex = -1;
         this.score = 0;
-        this.energy = 100;
-        this.history = [];
         this.isProcessing = false;
         this.isDragging = false;
         this.draggedCard = null;
         this.currentCol = -1;
-
-        this.modeConfig = {
-            name: '能量挑战',
-            icon: '⚡',
-            statLabel: '能量',
-            initialEnergy: 100,
-            drawCost: 15,
-            restorePerBlock: 1.5
-        };
 
         this.init();
     }
@@ -73,8 +62,6 @@ class CardPushGame {
         this.hand = [null, null];
         this.selectedHandIndex = -1;
         this.score = 0;
-        this.energy = this.modeConfig.initialEnergy;
-        this.history = [];
         this.isProcessing = false;
         this.isDragging = false;
         this.draggedCard = null;
@@ -182,13 +169,6 @@ class CardPushGame {
             this.showMessage('手牌已满！');
             return;
         }
-
-        if (this.energy < this.modeConfig.drawCost) {
-            this.showMessage('能量不足！');
-            return;
-        }
-
-        this.energy -= this.modeConfig.drawCost;
 
         const row = this.getBottomRow(col);
         const color = this.board[row][col];
@@ -576,10 +556,9 @@ class CardPushGame {
                 break;
             }
 
-            // 计算得分和能量
+            // 计算得分
             const eliminatedCount = match.length;
             this.score += eliminatedCount * 10;
-            this.energy += Math.floor(eliminatedCount * this.modeConfig.restorePerBlock);
 
             // 播放消除动画
             await this.animateElimination([match]);
@@ -881,11 +860,6 @@ class CardPushGame {
             return true;
         }
 
-        // 没有能量且没有手牌也是死局
-        if (this.energy < this.modeConfig.drawCost) {
-            return true;
-        }
-
         return false;
     }
 
@@ -894,7 +868,6 @@ class CardPushGame {
         document.getElementById('result-title').textContent = isWin ? '胜利!' : '失败';
         document.getElementById('result-title').style.color = isWin ? '#00d9ff' : '#e94560';
         document.getElementById('final-score').textContent = this.score;
-        document.getElementById('result-stat-value').textContent = this.energy;
 
         let stars = isWin ? 3 : 0;
         document.getElementById('star-rating').innerHTML = '';
