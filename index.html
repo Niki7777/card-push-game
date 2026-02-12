@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>卡牌推拉</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 主菜单 -->
+        <div id="main-menu" class="screen active">
+            <div class="logo">
+                <h1>卡牌推拉</h1>
+                <p class="subtitle">Card Push</p>
+            </div>
+            <div class="mode-selection">
+                <button class="mode-btn energy" data-mode="energy">
+                    <span class="mode-icon">⚡</span>
+                    <span class="mode-name">能量挑战</span>
+                    <span class="mode-desc">精打细算，合理分配能量</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <button class="back-btn">←</button>
+                <div class="mode-indicator">
+                    <span id="current-mode-icon">⚡</span>
+                    <span id="current-mode-name">能量挑战</span>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">得分</span>
+                        <span id="score" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item mode-specific">
+                        <span id="mode-stat-label" class="stat-label">能量</span>
+                        <span id="mode-stat-value" class="stat-value">100</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-board-container">
+                <div id="game-board"></div>
+            </div>
+
+            <!-- 待出牌区 -->
+            <div class="play-area">
+                <div class="play-area-zone" id="play-zone">
+                    <div class="play-area-grid" id="play-area-grid"></div>
+                </div>
+            </div>
+
+            <div class="hand-area">
+                <div class="hand-label">手牌</div>
+                <div class="hand-slots">
+                    <div class="hand-slot" data-slot="0"></div>
+                    <div class="hand-slot" data-slot="1"></div>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="undo-btn" class="control-btn" disabled>↩️ 撤销</button>
+                <button id="hint-btn" class="control-btn">💡 提示</button>
+                <button id="pause-btn" class="control-btn">⏸️ 暂停</button>
+            </div>
+        </div>
+
+        <!-- 暂停界面 -->
+        <div id="pause-screen" class="screen overlay">
+            <div class="overlay-content">
+                <h2>游戏暂停</h2>
+                <button id="resume-btn" class="primary-btn">继续游戏</button>
+                <button id="restart-btn" class="secondary-btn">重新开始</button>
+                <button id="quit-btn" class="secondary-btn">返回主菜单</button>
+            </div>
+        </div>
+
+        <!-- 结算界面 -->
+        <div id="result-screen" class="screen overlay">
+            <div class="overlay-content">
+                <div id="result-icon" class="result-icon">🏆</div>
+                <h2 id="result-title">胜利!</h2>
+                <div class="result-stats">
+                    <div class="result-stat">
+                        <span class="result-label">最终得分</span>
+                        <span id="final-score" class="result-value">0</span>
+                    </div>
+                    <div class="result-stat">
+                        <span id="result-stat-label" class="result-label">剩余能量</span>
+                        <span id="result-stat-value" class="result-value">0</span>
+                    </div>
+                </div>
+                <div id="star-rating" class="star-rating">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+                <button id="play-again-btn" class="primary-btn">再玩一次</button>
+                <button id="back-menu-btn" class="secondary-btn">返回主菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

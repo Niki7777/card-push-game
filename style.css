@@ -1,0 +1,643 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --color-1: #FF4444;
+    --color-2: #FF8C00;
+    --color-3: #FFD700;
+    --color-4: #32CD32;
+    --color-5: #1E90FF;
+    --color-6: #4169E1;
+    --color-7: #8A2BE2;
+    --color-rainbow: linear-gradient(135deg, #FF4444, #FF8C00, #FFD700, #32CD32, #1E90FF);
+    --bg-dark: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-hover: #0f3460;
+    --text-primary: #eaeaea;
+    --text-secondary: #a0a0a0;
+    --accent: #e94560;
+    --success: #00d9ff;
+    --warning: #ffb800;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    padding: 8px;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* 主菜单 */
+#main-menu {
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 16px;
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.logo h1 {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 4px;
+}
+
+.logo .subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+}
+
+.mode-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mode-btn.energy { border: 2px solid #FFD700; }
+.mode-btn.time { border: 2px solid #00d9ff; }
+.mode-btn.steps { border: 2px solid #ff6b6b; }
+
+.mode-icon { font-size: 28px; margin-bottom: 4px; }
+.mode-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.mode-desc { font-size: 11px; color: var(--text-secondary); }
+
+/* 游戏界面 */
+#game-screen {
+    padding: 6px;
+    background: var(--bg-dark);
+}
+
+.game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border-radius: 10px;
+}
+
+.back-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.mode-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stats {
+    display: flex;
+    gap: 12px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.stat-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; }
+.stat-value { font-size: 16px; font-weight: 700; color: var(--success); }
+
+/* 游戏区域 */
+.game-board-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+}
+
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(8, 36px);
+    grid-template-rows: repeat(10, 46px);
+    gap: 3px;
+    width: fit-content;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.cell {
+    width: 36px;
+    height: 46px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.4),
+        inset 0 -2px 0 rgba(0,0,0,0.2),
+        0 2px 4px rgba(0,0,0,0.3),
+        0 4px 8px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 4px 4px 0 0;
+    pointer-events: none;
+}
+
+.cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0) 100%);
+    border-radius: 0 0 4px 4px;
+    pointer-events: none;
+}
+
+.cell:hover {
+    transform: scale(1.08) translateY(-2px);
+    z-index: 10;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.4),
+        inset 0 -2px 0 rgba(0,0,0,0.2),
+        0 4px 12px rgba(0,0,0,0.4),
+        0 8px 16px rgba(0,0,0,0.3);
+}
+
+.cell.empty {
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
+}
+
+.cell.empty::before,
+.cell.empty::after {
+    display: none;
+}
+
+.cell.color-1 { 
+    background: linear-gradient(135deg, #ffb3ba 0%, #ff8a95 50%, #ff6b7a 100%);
+}
+.cell.color-2 { 
+    background: linear-gradient(135deg, #ffd8b1 0%, #ffc48c 50%, #ffb366 100%);
+}
+.cell.color-3 { 
+    background: linear-gradient(135deg, #ffffba 0%, #ffff8f 50%, #ffff6b 100%);
+}
+.cell.color-4 { 
+    background: linear-gradient(135deg, #baffc9 0%, #8cffa3 50%, #6bff8a 100%);
+}
+.cell.color-5 { 
+    background: linear-gradient(135deg, #bae1ff 0%, #8fceff 50%, #6bbfff 100%);
+}
+.cell.color-6 { 
+    background: linear-gradient(135deg, #e2baff 0%, #d48cff 50%, #c76bff 100%);
+}
+.cell.color-7 { 
+    background: linear-gradient(135deg, #c9c9ff 0%, #a8a8ff 50%, #8787ff 100%);
+}
+.cell.color-rainbow { 
+    background: linear-gradient(135deg, #ff6666 0%, #ff9933 20%, #ffdd33 40%, #66dd66 60%, #4499ff 80%, #aa66ff 100%);
+    position: relative;
+}
+.cell.color-rainbow::after {
+    content: '★';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    z-index: 2;
+}
+
+/* 飞行动画卡牌 */
+.flying-card {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.playing-card {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: none !important;
+}
+
+/* 从下方插入的动画 */
+.insert-from-bottom {
+    animation: insertFromBottom 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes insertFromBottom {
+    0% {
+        transform: translateY(50px) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* 悬浮卡牌 */
+#floating-card {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    transform: scale(1.1);
+}
+
+/* 手牌选中状态 */
+.hand-slot.selected {
+    border-color: var(--success);
+    border-style: solid;
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+}
+
+/* 可插入位置高亮 */
+.cell.insert-target {
+    box-shadow: 0 0 0 3px var(--success), 0 2px 8px rgba(0, 217, 255, 0.6);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* 消除动画 */
+.cell.eliminating {
+    animation: eliminate 0.4s ease-out forwards;
+    z-index: 100;
+}
+
+@keyframes eliminate {
+    0% { 
+        transform: scale(1) rotate(0deg); 
+        opacity: 1;
+        filter: brightness(1);
+    }
+    30% { 
+        transform: scale(1.2) rotate(5deg); 
+        opacity: 0.9;
+        filter: brightness(1.5);
+    }
+    60% { 
+        transform: scale(0.8) rotate(-5deg); 
+        opacity: 0.5;
+        filter: brightness(2);
+    }
+    100% { 
+        transform: scale(0) rotate(0deg); 
+        opacity: 0;
+        filter: brightness(3);
+    }
+}
+
+/* 消息提示 */
+.message-text {
+    position: fixed;
+    font-size: 16px;
+    font-weight: 700;
+    color: #e94560;
+    background: rgba(26, 26, 46, 0.95);
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 2000;
+    pointer-events: none;
+    animation: fadeInOut 1.5s ease forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+.hint-pulse {
+    animation: hintPulse 1s ease infinite;
+    box-shadow: 0 0 0 3px #ffb800;
+}
+
+@keyframes hintPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(255, 184, 0, 0); }
+}
+
+/* 待出牌区 */
+.play-area {
+    padding: 4px;
+    background: var(--bg-hover);
+    border-radius: 10px;
+    margin-bottom: 6px;
+}
+
+.play-area-zone {
+    width: fit-content;
+    height: 46px;
+    position: relative;
+    margin: 0 auto;
+}
+
+.play-area-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 36px);
+    gap: 3px;
+    width: fit-content;
+    height: 100%;
+}
+
+.play-area-cell {
+    width: 36px;
+    height: 46px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.play-area-cell.highlight {
+    border-color: var(--success);
+    background: rgba(0, 217, 255, 0.2);
+    box-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
+}
+
+.play-area-zone.active {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+/* 拖动中的卡牌 */
+.dragging-card {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transition: none;
+}
+
+/* 手牌区域 */
+.hand-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    margin-bottom: 6px;
+}
+
+.hand-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; }
+
+.hand-slots {
+    display: flex;
+    gap: 12px;
+}
+
+.hand-slot {
+    width: 36px;
+    height: 46px;
+    border-radius: 4px;
+    background: var(--bg-hover);
+    border: 2px dashed var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hand-slot:hover {
+    border-color: var(--success);
+}
+
+.hand-slot.selected {
+    border-color: var(--success);
+    border-style: solid;
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+}
+
+.hand-slot .cell {
+    width: 36px;
+    height: 46px;
+    border-radius: 4px;
+}
+
+/* 控制按钮 */
+.game-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.control-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.control-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* 遮罩层 */
+.screen.overlay {
+    background: rgba(26, 26, 46, 0.95);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 32px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    max-width: 280px;
+    width: 90%;
+}
+
+.overlay-content h2 { font-size: 24px; margin-bottom: 20px; }
+
+.primary-btn, .secondary-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: white;
+}
+
+.secondary-btn {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* 颜色选择器 */
+.color-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.color-picker-content {
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.color-picker-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.color-picker-options {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.color-option {
+    width: 36px;
+    height: 46px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.color-picker-cancel {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.color-picker-cancel:hover {
+    background: var(--accent);
+}
+
+/* 结算界面 */
+.result-icon { font-size: 48px; margin-bottom: 12px; }
+.result-stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 16px 0;
+    padding: 12px;
+    background: var(--bg-dark);
+    border-radius: 10px;
+}
+.result-stat { display: flex; flex-direction: column; }
+.result-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; }
+.result-value { font-size: 20px; font-weight: 700; color: var(--success); }
+.star-rating { font-size: 24px; margin-bottom: 16px; letter-spacing: 4px; }
+.star-rating .star { opacity: 0.3; }
+.star-rating .star.active { opacity: 1; }
