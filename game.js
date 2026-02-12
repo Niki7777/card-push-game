@@ -405,9 +405,35 @@ class CardPushGame {
         document.getElementById('play-zone').classList.remove('active');
         this.clearPlayAreaHighlight();
 
-        if (this.currentCol >= 0 && this.currentCol < this.cols) {
-            // 可以插入任意列（包括满列，满列时最上面的牌会被挤出）
-            await this.insertCard(this.currentCol);
+        // 获取触摸或鼠标事件的坐标
+        let clientX, clientY;
+        if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        // 检查是否在出牌区上方
+        const playZone = document.getElementById('play-zone');
+        const playRect = playZone.getBoundingClientRect();
+
+        if (clientY >= playRect.top && clientY <= playRect.bottom &&
+            clientX >= playRect.left && clientX <= playRect.right) {
+            // 计算插入哪个列
+            const gridEl = document.getElementById('play-area-grid');
+            const gridRect = gridEl.getBoundingClientRect();
+            const colWidth = gridRect.width / this.cols;
+            const relativeX = clientX - gridRect.left;
+            const col = Math.floor(relativeX / colWidth);
+
+            if (col >= 0 && col < this.cols) {
+                await this.insertCard(col);
+            }
         }
 
         this.clearDragElements();
