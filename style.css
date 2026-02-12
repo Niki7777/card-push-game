@@ -85,7 +85,7 @@ body {
     text-transform: uppercase;
 }
 
-.mode-selection {
+.level-selection {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -93,26 +93,62 @@ body {
     max-width: 320px;
 }
 
-.mode-btn {
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.level-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 24px;
-    border: none;
-    border-radius: 12px;
+    justify-content: center;
+    padding: 12px 8px;
+    border: 2px solid var(--bg-hover);
+    border-radius: 10px;
     background: var(--bg-card);
     color: var(--text-primary);
     cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 60px;
 }
 
-.mode-btn.energy { border: 2px solid #FFD700; }
-.mode-btn.time { border: 2px solid #00d9ff; }
-.mode-btn.steps { border: 2px solid #ff6b6b; }
+.level-btn:hover:not(:disabled) {
+    border-color: var(--success);
+    transform: translateY(-2px);
+}
 
-.mode-icon { font-size: 28px; margin-bottom: 4px; }
-.mode-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
-.mode-desc { font-size: 11px; color: var(--text-secondary); }
+.level-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.level-btn.unlocked {
+    border-color: var(--success);
+}
+
+.level-btn.current {
+    background: rgba(0, 217, 255, 0.2);
+    border-color: var(--success);
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+}
+
+.level-number {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.level-name {
+    font-size: 9px;
+    color: var(--text-secondary);
+}
+
+.level-status {
+    font-size: 12px;
+    margin-top: 2px;
+}
 
 /* 游戏界面 */
 #game-screen {
@@ -174,8 +210,8 @@ body {
 
 #game-board {
     display: grid;
-    grid-template-columns: repeat(8, 36px);
-    grid-template-rows: repeat(10, 46px);
+    grid-template-columns: repeat(8, 32px);
+    grid-template-rows: repeat(10, 40px);
     gap: 3px;
     width: fit-content;
     background: rgba(255, 255, 255, 0.03);
@@ -184,8 +220,8 @@ body {
 }
 
 .cell {
-    width: 36px;
-    height: 46px;
+    width: 32px;
+    height: 40px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -263,6 +299,9 @@ body {
 }
 .cell.color-7 { 
     background: linear-gradient(160deg, #f8bbd9 0%, #f48fb1 50%, #f06292 100%);
+}
+.cell.color-8 { 
+    background: linear-gradient(160deg, #a1887f 0%, #8d6e63 50%, #795548 100%);
 }
 .cell.color-rainbow { 
     background: linear-gradient(135deg, #ff6666 0%, #ff9933 20%, #ffdd33 40%, #66dd66 60%, #4499ff 80%, #aa66ff 100%);
@@ -431,22 +470,22 @@ body {
 
 .play-area-zone {
     width: fit-content;
-    height: 46px;
+    height: 40px;
     position: relative;
     margin: 0 auto;
 }
 
 .play-area-grid {
     display: grid;
-    grid-template-columns: repeat(8, 36px);
+    grid-template-columns: repeat(8, 32px);
     gap: 3px;
     width: fit-content;
     height: 100%;
 }
 
 .play-area-cell {
-    width: 36px;
-    height: 46px;
+    width: 32px;
+    height: 40px;
     border: 2px dashed rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     transition: all 0.2s ease;
@@ -491,8 +530,8 @@ body {
 }
 
 .hand-slot {
-    width: 36px;
-    height: 46px;
+    width: 32px;
+    height: 40px;
     border-radius: 4px;
     background: var(--bg-hover);
     border: 2px dashed var(--text-secondary);
@@ -514,8 +553,8 @@ body {
 }
 
 .hand-slot .cell {
-    width: 36px;
-    height: 46px;
+    width: 32px;
+    height: 40px;
     border-radius: 4px;
 }
 

@@ -12,25 +12,56 @@ class CardPushGame {
         this.isDragging = false;
         this.draggedCard = null;
         this.currentCol = -1;
+        this.currentLevel = 1;
+        this.maxLevel = 20;
+        this.unlockedLevel = parseInt(localStorage.getItem('pushpop_unlocked')) || 1;
+
+        // 关卡配置
+        this.levels = [
+            // 1-5关: 5色 1槽 标准模式
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 1' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 2' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 3' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 4' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 5' },
+            // 6-10关: 6色 2槽 消除得分翻倍
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 1' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 2' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 3' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 4' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 5' },
+            // 11-15关: 7色 2槽 每步消耗能量+5
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 1' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 2' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 3' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 4' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 5' },
+            // 16-20关: 8色 2槽
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 1' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 2' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 3' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 4' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 5' },
+        ];
 
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.renderLevelSelect();
         this.showScreen('main-menu');
     }
 
     bindEvents() {
-        document.querySelector('.mode-btn').addEventListener('click', () => this.startGame());
-        document.querySelector('.back-btn').addEventListener('click', () => this.showScreen('main-menu'));
+        document.querySelector('.back-btn').addEventListener('click', () => {
+            this.showScreen('main-menu');
+            this.renderLevelSelect();
+        });
         document.getElementById('play-again-btn').addEventListener('click', () => this.restartGame());
-        document.getElementById('back-menu-btn').addEventListener('click', () => this.showScreen('main-menu'));
-
-        // 手牌槽位拖动事件
-        document.querySelectorAll('.hand-slot').forEach((slot, index) => {
-            slot.addEventListener('mousedown', (e) => this.startDrag(e, index));
-            slot.addEventListener('touchstart', (e) => this.startDrag(e, index), { passive: false });
+        document.getElementById('back-menu-btn').addEventListener('click', () => {
+            this.showScreen('main-menu');
+            this.renderLevelSelect();
         });
 
         // 全局拖动事件
@@ -40,16 +71,52 @@ class CardPushGame {
         document.addEventListener('touchend', (e) => this.endDrag(e));
     }
 
+    renderLevelSelect() {
+        const grid = document.getElementById('level-grid');
+        grid.innerHTML = '';
+        
+        this.levels.forEach((level, index) => {
+            const levelNum = index + 1;
+            const isUnlocked = levelNum <= this.unlockedLevel;
+            const isCurrent = levelNum === this.currentLevel;
+            
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            if (isUnlocked) btn.classList.add('unlocked');
+            if (isCurrent) btn.classList.add('current');
+            btn.disabled = !isUnlocked;
+            
+            btn.innerHTML = `
+                <span class="level-number">${levelNum}</span>
+                <span class="level-name">${level.name}</span>
+                <span class="level-status">${isUnlocked ? (isCurrent ? '●' : '○') : '🔒'}</span>
+            `;
+            
+            btn.addEventListener('click', () => this.startGame(levelNum));
+            grid.appendChild(btn);
+        });
+    }
+
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
     }
 
-    async startGame() {
+    async startGame(level = 1) {
+        this.currentLevel = level;
+        const config = this.levels[level - 1];
+        
+        // 应用关卡配置
+        this.colors = config.colors;
+        this.hand = new Array(config.handSlots).fill(null);
+        this.scoreMultiplier = config.scoreMultiplier || 1;
+        this.energyCost = config.energyCost || 0;
+        
         this.resetGame();
         this.generateBoard();
         this.renderBoard();
         this.renderPlayArea();
+        this.updateHandSlotsUI();
         this.updateUI();
         this.showScreen('game-screen');
 
@@ -59,7 +126,6 @@ class CardPushGame {
 
     resetGame() {
         this.board = [];
-        this.hand = [null, null];
         this.selectedHandIndex = -1;
         this.score = 0;
         this.isProcessing = false;
@@ -69,6 +135,19 @@ class CardPushGame {
 
         this.updateHandUI();
         this.clearDragElements();
+    }
+
+    updateHandSlotsUI() {
+        const container = document.querySelector('.hand-slots');
+        container.innerHTML = '';
+        for (let i = 0; i < this.hand.length; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'hand-slot';
+            slot.dataset.slot = i;
+            slot.addEventListener('mousedown', (e) => this.startDrag(e, i));
+            slot.addEventListener('touchstart', (e) => this.startDrag(e, i), { passive: false });
+            container.appendChild(slot);
+        }
     }
 
     generateBoard() {
@@ -423,7 +502,7 @@ class CardPushGame {
             setTimeout(() => {
                 animElements.forEach(({ el }) => {
                     el.style.transition = 'all 0.2s ease-out';
-                    el.style.transform = 'translateY(-49px)';
+                    el.style.transform = 'translateY(-43px)';
                 });
             }, 10);
 
@@ -556,9 +635,9 @@ class CardPushGame {
                 break;
             }
 
-            // 计算得分
+            // 计算得分（应用关卡倍率）
             const eliminatedCount = match.length;
-            this.score += eliminatedCount * 10;
+            this.score += eliminatedCount * 10 * this.scoreMultiplier;
 
             // 播放消除动画
             await this.animateElimination([match]);
@@ -864,10 +943,32 @@ class CardPushGame {
     }
 
     endGame(isWin) {
+        const config = this.levels[this.currentLevel - 1];
         document.getElementById('result-icon').textContent = isWin ? '🏆' : '💔';
-        document.getElementById('result-title').textContent = isWin ? '胜利!' : '失败';
+        document.getElementById('result-title').textContent = isWin ? `关卡 ${this.currentLevel} 通关!` : '失败';
         document.getElementById('result-title').style.color = isWin ? '#00d9ff' : '#e94560';
         document.getElementById('final-score').textContent = this.score;
+        document.getElementById('result-stat-label').textContent = config.name;
+        document.getElementById('result-stat-value').textContent = isWin ? '✓' : '✗';
+
+        // 解锁下一关
+        if (isWin && this.currentLevel < this.maxLevel) {
+            const nextLevel = this.currentLevel + 1;
+            if (nextLevel > this.unlockedLevel) {
+                this.unlockedLevel = nextLevel;
+                localStorage.setItem('pushpop_unlocked', this.unlockedLevel);
+            }
+        }
+
+        // 更新按钮
+        const playAgainBtn = document.getElementById('play-again-btn');
+        if (isWin && this.currentLevel < this.maxLevel) {
+            playAgainBtn.textContent = '下一关 →';
+            playAgainBtn.onclick = () => this.startGame(this.currentLevel + 1);
+        } else {
+            playAgainBtn.textContent = '再玩一次';
+            playAgainBtn.onclick = () => this.restartGame();
+        }
 
         let stars = isWin ? 3 : 0;
         document.getElementById('star-rating').innerHTML = '';
@@ -882,7 +983,7 @@ class CardPushGame {
     }
 
     restartGame() {
-        this.startGame();
+        this.startGame(this.currentLevel);
     }
 
     updateUI() {
