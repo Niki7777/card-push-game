@@ -661,11 +661,112 @@ class CardPushGame {
             // 停顿一下再判断下一组
             await this.delay(200);
 
+            // 检查是否有空列，有则左移补齐
+            const emptyCols = this.findEmptyColumns();
+            if (emptyCols.length > 0) {
+                await this.shiftColumnsLeft(emptyCols);
+            }
+
             eliminatedGroups++;
         }
 
         this.isProcessing = false;
         this.checkGameEnd();
+    }
+
+    // 找到所有空列
+    findEmptyColumns() {
+        const emptyCols = [];
+        for (let c = 0; c < this.cols; c++) {
+            let isEmpty = true;
+            for (let r = 0; r < this.rows; r++) {
+                if (this.board[r][c] !== null) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            if (isEmpty) emptyCols.push(c);
+        }
+        return emptyCols;
+    }
+
+    // 左移列补齐
+    async shiftColumnsLeft(emptyCols) {
+        // 从右向左处理，避免索引变化问题
+        emptyCols.sort((a, b) => b - a);
+        
+        for (const emptyCol of emptyCols) {
+            // 动画：右边的列左移
+            await this.animateShiftLeft(emptyCol);
+            
+            // 数据左移
+            for (let c = emptyCol; c < this.cols - 1; c++) {
+                for (let r = 0; r < this.rows; r++) {
+                    this.board[r][c] = this.board[r][c + 1];
+                }
+            }
+            // 最右列置空
+            for (let r = 0; r < this.rows; r++) {
+                this.board[r][this.cols - 1] = null;
+            }
+        }
+        
+        this.renderBoard();
+    }
+
+    // 列左移动画
+    async animateShiftLeft(emptyCol) {
+        return new Promise(resolve => {
+            const cells = document.querySelectorAll('.cell');
+            const animElements = [];
+            
+            // 获取需要左移的列（emptyCol右边的所有列）
+            for (let c = emptyCol + 1; c < this.cols; c++) {
+                for (let r = 0; r < this.rows; r++) {
+                    const cellIndex = r * this.cols + c;
+                    const cell = cells[cellIndex];
+                    if (!cell.classList.contains('empty')) {
+                        const rect = cell.getBoundingClientRect();
+                        const animCard = document.createElement('div');
+                        animCard.className = cell.className;
+                        animCard.style.position = 'fixed';
+                        animCard.style.zIndex = '999';
+                        animCard.style.pointerEvents = 'none';
+                        animCard.style.left = rect.left + 'px';
+                        animCard.style.top = rect.top + 'px';
+                        animCard.style.width = rect.width + 'px';
+                        animCard.style.height = rect.height + 'px';
+                        animCard.style.transition = 'none';
+                        document.body.appendChild(animCard);
+                        animElements.push(animCard);
+                    }
+                    cell.style.opacity = '0';
+                }
+            }
+            
+            if (animElements.length === 0) {
+                resolve();
+                return;
+            }
+            
+            // 强制重绘
+            animElements.forEach(el => el.offsetHeight);
+            
+            // 开始左移动画
+            setTimeout(() => {
+                animElements.forEach(el => {
+                    el.style.transition = 'all 0.25s ease-out';
+                    el.style.transform = 'translateX(-35px)';
+                });
+            }, 10);
+            
+            // 动画结束
+            setTimeout(() => {
+                animElements.forEach(el => el.remove());
+                cells.forEach(cell => cell.style.opacity = '');
+                resolve();
+            }, 260);
+        });
     }
 
     // 找到最下面的一组匹配
