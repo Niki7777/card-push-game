@@ -35,12 +35,6 @@ class CardPushGame {
     bindEvents() {
         document.querySelector('.mode-btn').addEventListener('click', () => this.startGame());
         document.querySelector('.back-btn').addEventListener('click', () => this.showScreen('main-menu'));
-        document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
-        document.getElementById('resume-btn').addEventListener('click', () => this.resumeGame());
-        document.getElementById('restart-btn').addEventListener('click', () => this.restartGame());
-        document.getElementById('quit-btn').addEventListener('click', () => this.showScreen('main-menu'));
-        document.getElementById('undo-btn').addEventListener('click', () => this.undo());
-        document.getElementById('hint-btn').addEventListener('click', () => this.showHint());
         document.getElementById('play-again-btn').addEventListener('click', () => this.restartGame());
         document.getElementById('back-menu-btn').addEventListener('click', () => this.showScreen('main-menu'));
 
@@ -195,7 +189,6 @@ class CardPushGame {
         }
 
         this.energy -= this.modeConfig.drawCost;
-        this.saveHistory();
 
         const row = this.getBottomRow(col);
         const color = this.board[row][col];
@@ -355,8 +348,6 @@ class CardPushGame {
 
         const bottomRow = this.getBottomRow(col);
 
-        this.saveHistory();
-
         const card = this.hand[this.selectedHandIndex];
 
         // 如果是彩虹牌，需要选择颜色
@@ -482,13 +473,13 @@ class CardPushGame {
                 <div class="color-picker-content">
                     <div class="color-picker-title">选择彩虹牌颜色</div>
                     <div class="color-picker-options">
-                        <div class="color-option" data-color="1" style="background: linear-gradient(135deg, #ffb3ba 0%, #ff8a95 50%, #ff6b7a 100%);"></div>
-                        <div class="color-option" data-color="2" style="background: linear-gradient(135deg, #ffd8b1 0%, #ffc48c 50%, #ffb366 100%);"></div>
-                        <div class="color-option" data-color="3" style="background: linear-gradient(135deg, #ffffba 0%, #ffff8f 50%, #ffff6b 100%);"></div>
-                        <div class="color-option" data-color="4" style="background: linear-gradient(135deg, #baffc9 0%, #8cffa3 50%, #6bff8a 100%);"></div>
-                        <div class="color-option" data-color="5" style="background: linear-gradient(135deg, #bae1ff 0%, #8fceff 50%, #6bbfff 100%);"></div>
-                        <div class="color-option" data-color="6" style="background: linear-gradient(135deg, #e2baff 0%, #d48cff 50%, #c76bff 100%);"></div>
-                        <div class="color-option" data-color="7" style="background: linear-gradient(135deg, #c9c9ff 0%, #a8a8ff 50%, #8787ff 100%);"></div>
+                        <div class="color-option" data-color="1" style="background: linear-gradient(160deg, #ffcdd2 0%, #ef9a9a 50%, #e57373 100%);"></div>
+                        <div class="color-option" data-color="2" style="background: linear-gradient(160deg, #ffffff 0%, #f5f5f5 50%, #e0e0e0 100%);"></div>
+                        <div class="color-option" data-color="3" style="background: linear-gradient(160deg, #fff9c4 0%, #fff59d 50%, #fff176 100%);"></div>
+                        <div class="color-option" data-color="4" style="background: linear-gradient(160deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%);"></div>
+                        <div class="color-option" data-color="5" style="background: linear-gradient(160deg, #b3e5fc 0%, #81d4fa 50%, #4fc3f7 100%);"></div>
+                        <div class="color-option" data-color="6" style="background: linear-gradient(160deg, #d1c4e9 0%, #b39ddb 50%, #9575cd 100%);"></div>
+                        <div class="color-option" data-color="7" style="background: linear-gradient(160deg, #f8bbd9 0%, #f48fb1 50%, #f06292 100%);"></div>
                     </div>
                     <button class="color-picker-cancel">取消</button>
                 </div>
@@ -841,32 +832,6 @@ class CardPushGame {
         setTimeout(() => text.remove(), 1500);
     }
 
-    saveHistory() {
-        if (this.history.length >= 10) this.history.shift();
-        this.history.push({
-            board: this.board.map(row => [...row]),
-            hand: [...this.hand],
-            score: this.score,
-            energy: this.energy
-        });
-        document.getElementById('undo-btn').disabled = false;
-    }
-
-    undo() {
-        if (this.history.length === 0) return;
-        const state = this.history.pop();
-        this.board = state.board;
-        this.hand = state.hand;
-        this.score = state.score;
-        this.energy = state.energy;
-        this.selectedHandIndex = -1;
-        this.clearDragElements();
-        this.renderBoard();
-        this.updateHandUI();
-        this.updateUI();
-        if (this.history.length === 0) document.getElementById('undo-btn').disabled = true;
-    }
-
     checkGameEnd() {
         // 检查是否还有手牌，有手牌时不能结束游戏
         const hasHandCards = this.hand.some(h => h !== null);
@@ -943,33 +908,12 @@ class CardPushGame {
         this.showScreen('result-screen');
     }
 
-    pauseGame() {
-        document.getElementById('pause-screen').classList.add('active');
-    }
-
-    resumeGame() {
-        document.getElementById('pause-screen').classList.remove('active');
-    }
-
     restartGame() {
         this.startGame();
     }
 
     updateUI() {
         document.getElementById('score').textContent = this.score;
-        document.getElementById('mode-stat-value').textContent = this.energy;
-        document.getElementById('mode-stat-value').style.color = this.energy < this.modeConfig.drawCost ? '#e94560' : '#00d9ff';
-    }
-
-    showHint() {
-        const matches = this.findMatches();
-        if (matches.length > 0) {
-            const cells = document.querySelectorAll('.cell');
-            matches[0].forEach(({r, c}) => {
-                cells[r * this.cols + c].classList.add('hint-pulse');
-                setTimeout(() => cells[r * this.cols + c].classList.remove('hint-pulse'), 2000);
-            });
-        }
     }
 
     delay(ms) {
