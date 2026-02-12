@@ -252,6 +252,9 @@ class CardPushGame {
         const row = this.getBottomRow(col);
         const color = this.board[row][col];
 
+        // 检查这是否是该列最后一张牌
+        const isLastCard = this.isColumnEmptyAfterDraw(col, row);
+
         // 获取被抽的卡牌元素
         const cells = document.querySelectorAll('.cell');
         const cardEl = cells[row * this.cols + col];
@@ -266,7 +269,23 @@ class CardPushGame {
         this.updateHandUI();
         this.renderBoard();
         this.updateUI();
+
+        // 如果该列已空，立即左移
+        if (isLastCard) {
+            await this.shiftColumnsLeft([col]);
+        }
+
         this.processElimination();
+    }
+
+    // 检查抽牌后该列是否为空
+    isColumnEmptyAfterDraw(col, drawRow) {
+        for (let r = 0; r < drawRow; r++) {
+            if (this.board[r][col] !== null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     animateDrawCard(cardEl, color, slotIndex) {
