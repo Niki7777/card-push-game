@@ -977,4 +977,250 @@ class CardPushGame {
     }
 }
 
-new CardPushGame();
+// 游戏教程和引导系统
+class GameTutorial {
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.guideSteps = [
+            {
+                element: '.game-board-container',
+                text: '点击牌堆最下方的卡牌，将其加入你的手牌',
+                position: 'bottom'
+            },
+            {
+                element: '.hand-area',
+                text: '手牌会显示在这里，你可以拖动它们到出牌区',
+                position: 'top'
+            },
+            {
+                element: '.play-area',
+                text: '将卡牌拖动到这里，插入任意列的底部',
+                position: 'top'
+            },
+            {
+                element: '.stats',
+                text: '注意你的能量值，抽牌会消耗能量，消除会恢复能量',
+                position: 'bottom'
+            }
+        ];
+        this.currentGuideStep = 0;
+        this.init();
+    }
+
+    init() {
+        this.bindTutorialEvents();
+        this.checkFirstTimeUser();
+    }
+
+    bindTutorialEvents() {
+        // 教程入口按钮
+        const tutorialBtn = document.getElementById('tutorial-btn');
+        if (tutorialBtn) {
+            tutorialBtn.addEventListener('click', () => this.showTutorial());
+        }
+
+        // 教程导航按钮
+        const prevBtn = document.getElementById('tutorial-prev');
+        const nextBtn = document.getElementById('tutorial-next');
+        const closeBtn = document.getElementById('tutorial-close');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.prevStep());
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextStep());
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeTutorial());
+        }
+
+        // 引导下一步按钮
+        const guideNextBtn = document.querySelector('.guide-next-btn');
+        if (guideNextBtn) {
+            guideNextBtn.addEventListener('click', () => this.nextGuideStep());
+        }
+    }
+
+    checkFirstTimeUser() {
+        const hasSeenTutorial = localStorage.getItem('cardPushTutorialSeen');
+        if (!hasSeenTutorial) {
+            // 首次用户，标记为已看过教程
+            localStorage.setItem('cardPushTutorialSeen', 'true');
+        }
+    }
+
+    showTutorial() {
+        this.currentStep = 1;
+        this.updateTutorialUI();
+        document.getElementById('tutorial-screen').classList.add('active');
+    }
+
+    closeTutorial() {
+        document.getElementById('tutorial-screen').classList.remove('active');
+    }
+
+    nextStep() {
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.updateTutorialUI();
+        } else {
+            this.closeTutorial();
+        }
+    }
+
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.updateTutorialUI();
+        }
+    }
+
+    updateTutorialUI() {
+        // 更新步骤显示
+        document.querySelectorAll('.tutorial-step').forEach((step, index) => {
+            step.classList.toggle('active', index + 1 === this.currentStep);
+        });
+
+        // 更新导航点
+        document.querySelectorAll('.dot').forEach((dot, index) => {
+            dot.classList.toggle('active', index + 1 === this.currentStep);
+        });
+
+        // 更新按钮状态
+        const prevBtn = document.getElementById('tutorial-prev');
+        const nextBtn = document.getElementById('tutorial-next');
+
+        if (prevBtn) {
+            prevBtn.disabled = this.currentStep === 1;
+        }
+        if (nextBtn) {
+            nextBtn.textContent = this.currentStep === this.totalSteps ? '开始游戏' : '下一步';
+        }
+    }
+
+    // 首次游戏引导
+    startFirstTimeGuide() {
+        const hasSeenGuide = localStorage.getItem('cardPushGuideSeen');
+        if (hasSeenGuide) return;
+
+        this.currentGuideStep = 0;
+        this.showGuideStep();
+    }
+
+    showGuideStep() {
+        const overlay = document.getElementById('first-time-guide');
+        const tooltip = document.getElementById('guide-tooltip');
+        const highlight = document.querySelector('.guide-highlight');
+
+        if (this.currentGuideStep >= this.guideSteps.length) {
+            this.endGuide();
+            return;
+        }
+
+        const step = this.guideSteps[this.currentGuideStep];
+        const targetEl = document.querySelector(step.element);
+
+        if (!targetEl) {
+            this.nextGuideStep();
+            return;
+        }
+
+        // 显示遮罩
+        overlay.classList.add('active');
+
+        // 设置高亮区域
+        const rect = targetEl.getBoundingClientRect();
+        highlight.style.left = (rect.left - 8) + 'px';
+        highlight.style.top = (rect.top - 8) + 'px';
+        highlight.style.width = (rect.width + 16) + 'px';
+        highlight.style.height = (rect.height + 16) + 'px';
+
+        // 设置提示文本
+        const textEl = tooltip.querySelector('.guide-text');
+        textEl.textContent = step.text;
+
+        // 设置提示位置
+        tooltip.className = 'guide-tooltip ' + step.position;
+
+        // 计算提示位置
+        let tooltipLeft, tooltipTop;
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        switch (step.position) {
+            case 'top':
+                tooltipLeft = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                tooltipTop = rect.top - tooltipRect.height - 16;
+                break;
+            case 'bottom':
+                tooltipLeft = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                tooltipTop = rect.bottom + 16;
+                break;
+            case 'left':
+                tooltipLeft = rect.left - tooltipRect.width - 16;
+                tooltipTop = rect.top + rect.height / 2 - tooltipRect.height / 2;
+                break;
+            case 'right':
+                tooltipLeft = rect.right + 16;
+                tooltipTop = rect.top + rect.height / 2 - tooltipRect.height / 2;
+                break;
+        }
+
+        // 边界检查
+        tooltipLeft = Math.max(10, Math.min(tooltipLeft, window.innerWidth - tooltipRect.width - 10));
+        tooltipTop = Math.max(10, Math.min(tooltipTop, window.innerHeight - tooltipRect.height - 10));
+
+        tooltip.style.left = tooltipLeft + 'px';
+        tooltip.style.top = tooltipTop + 'px';
+
+        // 更新按钮文本
+        const nextBtn = tooltip.querySelector('.guide-next-btn');
+        nextBtn.textContent = this.currentGuideStep === this.guideSteps.length - 1 ? '开始游戏' : '下一步';
+    }
+
+    nextGuideStep() {
+        this.currentGuideStep++;
+        if (this.currentGuideStep >= this.guideSteps.length) {
+            this.endGuide();
+        } else {
+            this.showGuideStep();
+        }
+    }
+
+    endGuide() {
+        const overlay = document.getElementById('first-time-guide');
+        overlay.classList.remove('active');
+        localStorage.setItem('cardPushGuideSeen', 'true');
+    }
+
+    // 显示游戏提示
+    showGameHint(message, duration = 2000) {
+        let hintEl = document.querySelector('.game-hint');
+        if (!hintEl) {
+            hintEl = document.createElement('div');
+            hintEl.className = 'game-hint';
+            document.body.appendChild(hintEl);
+        }
+
+        hintEl.textContent = message;
+        hintEl.classList.add('show');
+
+        setTimeout(() => {
+            hintEl.classList.remove('show');
+        }, duration);
+    }
+}
+
+// 初始化游戏和教程
+const game = new CardPushGame();
+const tutorial = new GameTutorial();
+
+// 在游戏开始时检查是否需要显示引导
+const originalStartGame = game.startGame.bind(game);
+game.startGame = async function() {
+    await originalStartGame();
+    // 延迟显示引导，等待界面渲染完成
+    setTimeout(() => {
+        tutorial.startFirstTimeGuide();
+    }, 500);
+};
