@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>卡牌推拉</title>
+    <title>PushPop 推推爆</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,106 +11,12 @@
         <!-- 主菜单 -->
         <div id="main-menu" class="screen active">
             <div class="logo">
-                <h1>卡牌推拉</h1>
-                <p class="subtitle">Card Push</p>
+                <h1>PushPop</h1>
+                <p class="subtitle">推推爆</p>
             </div>
-            <div class="mode-selection">
-                <button class="mode-btn energy" data-mode="energy">
-                    <span class="mode-icon">⚡</span>
-                    <span class="mode-name">能量挑战</span>
-                    <span class="mode-desc">精打细算，合理分配能量</span>
-                </button>
+            <div class="level-selection">
+                <div class="level-grid" id="level-grid"></div>
             </div>
-            <button id="tutorial-btn" class="tutorial-entry-btn">📖 游戏教程</button>
-        </div>
-
-        <!-- 教程界面 -->
-        <div id="tutorial-screen" class="screen overlay">
-            <div class="overlay-content tutorial-content">
-                <h2>🎮 游戏教程</h2>
-                <div class="tutorial-steps">
-                    <div class="tutorial-step active" data-step="1">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h3>抽牌</h3>
-                            <p>点击牌堆最下方的卡牌，将其加入手牌</p>
-                            <div class="step-demo">
-                                <div class="demo-board">
-                                    <div class="demo-cell color-1"></div>
-                                    <div class="demo-cell color-1"></div>
-                                    <div class="demo-cell highlight"></div>
-                                </div>
-                                <div class="demo-arrow">⬇️</div>
-                                <div class="demo-hand">
-                                    <div class="demo-hand-slot"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tutorial-step" data-step="2">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h3>出牌</h3>
-                            <p>将手牌拖动到出牌区，插入任意列的底部</p>
-                            <div class="step-demo">
-                                <div class="demo-hand">
-                                    <div class="demo-hand-slot color-1"></div>
-                                </div>
-                                <div class="demo-arrow">➡️</div>
-                                <div class="demo-board">
-                                    <div class="demo-cell"></div>
-                                    <div class="demo-cell highlight"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tutorial-step" data-step="3">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h3>消除</h3>
-                            <p>3个或更多相同颜色的卡牌横向相连时自动消除</p>
-                            <div class="step-demo">
-                                <div class="demo-board">
-                                    <div class="demo-cell color-1"></div>
-                                    <div class="demo-cell color-1"></div>
-                                    <div class="demo-cell color-1"></div>
-                                </div>
-                                <div class="demo-effect">💥 消除!</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tutorial-step" data-step="4">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h3>彩虹牌</h3>
-                            <p>彩虹牌可以当作任意颜色使用，帮助你完成消除</p>
-                            <div class="step-demo">
-                                <div class="demo-cell rainbow"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tutorial-nav">
-                    <button id="tutorial-prev" class="secondary-btn" disabled>上一步</button>
-                    <div class="tutorial-dots">
-                        <span class="dot active"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                    </div>
-                    <button id="tutorial-next" class="primary-btn">下一步</button>
-                </div>
-                <button id="tutorial-close" class="secondary-btn close-btn">关闭</button>
-            </div>
-        </div>
-
-        <!-- 首次游戏引导 -->
-        <div id="first-time-guide" class="guide-overlay">
-            <div class="guide-tooltip" id="guide-tooltip">
-                <div class="guide-text"></div>
-                <button class="guide-next-btn">知道了</button>
-            </div>
-            <div class="guide-highlight"></div>
         </div>
 
         <!-- 游戏界面 -->
@@ -118,17 +24,13 @@
             <div class="game-header">
                 <button class="back-btn">←</button>
                 <div class="mode-indicator">
-                    <span id="current-mode-icon">⚡</span>
-                    <span id="current-mode-name">能量挑战</span>
+                    <span id="current-mode-icon">🎮</span>
+                    <span id="current-mode-name">PushPop</span>
                 </div>
                 <div class="stats">
                     <div class="stat-item">
                         <span class="stat-label">得分</span>
                         <span id="score" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item mode-specific">
-                        <span id="mode-stat-label" class="stat-label">能量</span>
-                        <span id="mode-stat-value" class="stat-value">100</span>
                     </div>
                 </div>
             </div>
@@ -151,22 +53,6 @@
                     <div class="hand-slot" data-slot="1"></div>
                 </div>
             </div>
-
-            <div class="game-controls">
-                <button id="undo-btn" class="control-btn" disabled>↩️ 撤销</button>
-                <button id="hint-btn" class="control-btn">💡 提示</button>
-                <button id="pause-btn" class="control-btn">⏸️ 暂停</button>
-            </div>
-        </div>
-
-        <!-- 暂停界面 -->
-        <div id="pause-screen" class="screen overlay">
-            <div class="overlay-content">
-                <h2>游戏暂停</h2>
-                <button id="resume-btn" class="primary-btn">继续游戏</button>
-                <button id="restart-btn" class="secondary-btn">重新开始</button>
-                <button id="quit-btn" class="secondary-btn">返回主菜单</button>
-            </div>
         </div>
 
         <!-- 结算界面 -->
@@ -180,8 +66,8 @@
                         <span id="final-score" class="result-value">0</span>
                     </div>
                     <div class="result-stat">
-                        <span id="result-stat-label" class="result-label">剩余能量</span>
-                        <span id="result-stat-value" class="result-value">0</span>
+                        <span id="result-stat-label" class="result-label">PushPop</span>
+                        <span id="result-stat-value" class="result-value">🎉</span>
                     </div>
                 </div>
                 <div id="star-rating" class="star-rating">

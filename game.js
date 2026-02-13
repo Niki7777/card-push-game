@@ -8,46 +8,60 @@ class CardPushGame {
         this.hand = [null, null];
         this.selectedHandIndex = -1;
         this.score = 0;
-        this.energy = 100;
-        this.history = [];
         this.isProcessing = false;
         this.isDragging = false;
         this.draggedCard = null;
         this.currentCol = -1;
+        this.currentLevel = 1;
+        this.maxLevel = 20;
+        this.unlockedLevel = parseInt(localStorage.getItem('pushpop_unlocked')) || 1;
 
-        this.modeConfig = {
-            name: '能量挑战',
-            icon: '⚡',
-            statLabel: '能量',
-            initialEnergy: 100,
-            drawCost: 15,
-            restorePerBlock: 1.5
-        };
+        // 关卡配置
+        this.levels = [
+            // 1-5关: 5色 1槽 标准模式
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 1' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 2' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 3' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 4' },
+            { colors: 5, handSlots: 1, scoreMultiplier: 1, name: '入门 5' },
+            // 6-10关: 6色 2槽 消除得分翻倍
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 1' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 2' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 3' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 4' },
+            { colors: 6, handSlots: 2, scoreMultiplier: 2, name: '进阶 5' },
+            // 11-15关: 7色 2槽 每步消耗能量+5
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 1' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 2' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 3' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 4' },
+            { colors: 7, handSlots: 2, scoreMultiplier: 1, energyCost: 5, name: '挑战 5' },
+            // 16-20关: 8色 2槽
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 1' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 2' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 3' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 4' },
+            { colors: 8, handSlots: 2, scoreMultiplier: 1, name: '大师 5' },
+        ];
 
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.renderLevelSelect();
         this.showScreen('main-menu');
     }
 
     bindEvents() {
-        document.querySelector('.mode-btn').addEventListener('click', () => this.startGame());
-        document.querySelector('.back-btn').addEventListener('click', () => this.showScreen('main-menu'));
-        document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
-        document.getElementById('resume-btn').addEventListener('click', () => this.resumeGame());
-        document.getElementById('restart-btn').addEventListener('click', () => this.restartGame());
-        document.getElementById('quit-btn').addEventListener('click', () => this.showScreen('main-menu'));
-        document.getElementById('undo-btn').addEventListener('click', () => this.undo());
-        document.getElementById('hint-btn').addEventListener('click', () => this.showHint());
+        document.querySelector('.back-btn').addEventListener('click', () => {
+            this.showScreen('main-menu');
+            this.renderLevelSelect();
+        });
         document.getElementById('play-again-btn').addEventListener('click', () => this.restartGame());
-        document.getElementById('back-menu-btn').addEventListener('click', () => this.showScreen('main-menu'));
-
-        // 手牌槽位拖动事件
-        document.querySelectorAll('.hand-slot').forEach((slot, index) => {
-            slot.addEventListener('mousedown', (e) => this.startDrag(e, index));
-            slot.addEventListener('touchstart', (e) => this.startDrag(e, index), { passive: false });
+        document.getElementById('back-menu-btn').addEventListener('click', () => {
+            this.showScreen('main-menu');
+            this.renderLevelSelect();
         });
 
         // 全局拖动事件
@@ -57,16 +71,52 @@ class CardPushGame {
         document.addEventListener('touchend', (e) => this.endDrag(e));
     }
 
+    renderLevelSelect() {
+        const grid = document.getElementById('level-grid');
+        grid.innerHTML = '';
+        
+        this.levels.forEach((level, index) => {
+            const levelNum = index + 1;
+            const isUnlocked = levelNum <= this.unlockedLevel;
+            const isCurrent = levelNum === this.currentLevel;
+            
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            if (isUnlocked) btn.classList.add('unlocked');
+            if (isCurrent) btn.classList.add('current');
+            btn.disabled = !isUnlocked;
+            
+            btn.innerHTML = `
+                <span class="level-number">${levelNum}</span>
+                <span class="level-name">${level.name}</span>
+                <span class="level-status">${isUnlocked ? (isCurrent ? '●' : '○') : '🔒'}</span>
+            `;
+            
+            btn.addEventListener('click', () => this.startGame(levelNum));
+            grid.appendChild(btn);
+        });
+    }
+
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
     }
 
-    async startGame() {
+    async startGame(level = 1) {
+        this.currentLevel = level;
+        const config = this.levels[level - 1];
+        
+        // 应用关卡配置
+        this.colors = config.colors;
+        this.hand = new Array(config.handSlots).fill(null);
+        this.scoreMultiplier = config.scoreMultiplier || 1;
+        this.energyCost = config.energyCost || 0;
+        
         this.resetGame();
         this.generateBoard();
         this.renderBoard();
         this.renderPlayArea();
+        this.updateHandSlotsUI();
         this.updateUI();
         this.showScreen('game-screen');
 
@@ -76,11 +126,8 @@ class CardPushGame {
 
     resetGame() {
         this.board = [];
-        this.hand = [null, null];
         this.selectedHandIndex = -1;
         this.score = 0;
-        this.energy = this.modeConfig.initialEnergy;
-        this.history = [];
         this.isProcessing = false;
         this.isDragging = false;
         this.draggedCard = null;
@@ -88,6 +135,19 @@ class CardPushGame {
 
         this.updateHandUI();
         this.clearDragElements();
+    }
+
+    updateHandSlotsUI() {
+        const container = document.querySelector('.hand-slots');
+        container.innerHTML = '';
+        for (let i = 0; i < this.hand.length; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'hand-slot';
+            slot.dataset.slot = i;
+            slot.addEventListener('mousedown', (e) => this.startDrag(e, i));
+            slot.addEventListener('touchstart', (e) => this.startDrag(e, i), { passive: false });
+            container.appendChild(slot);
+        }
     }
 
     generateBoard() {
@@ -189,16 +249,11 @@ class CardPushGame {
             return;
         }
 
-        if (this.energy < this.modeConfig.drawCost) {
-            this.showMessage('能量不足！');
-            return;
-        }
-
-        this.energy -= this.modeConfig.drawCost;
-        this.saveHistory();
-
         const row = this.getBottomRow(col);
         const color = this.board[row][col];
+
+        // 检查这是否是该列最后一张牌
+        const isLastCard = this.isColumnEmptyAfterDraw(col, row);
 
         // 获取被抽的卡牌元素
         const cells = document.querySelectorAll('.cell');
@@ -214,7 +269,23 @@ class CardPushGame {
         this.updateHandUI();
         this.renderBoard();
         this.updateUI();
+
+        // 如果该列已空，立即左移
+        if (isLastCard) {
+            await this.shiftColumnsLeft([col]);
+        }
+
         this.processElimination();
+    }
+
+    // 检查抽牌后该列是否为空
+    isColumnEmptyAfterDraw(col, drawRow) {
+        for (let r = 0; r < drawRow; r++) {
+            if (this.board[r][col] !== null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     animateDrawCard(cardEl, color, slotIndex) {
@@ -334,9 +405,35 @@ class CardPushGame {
         document.getElementById('play-zone').classList.remove('active');
         this.clearPlayAreaHighlight();
 
-        if (this.currentCol >= 0 && this.currentCol < this.cols) {
-            // 可以插入任意列（包括满列，满列时最上面的牌会被挤出）
-            await this.insertCard(this.currentCol);
+        // 获取触摸或鼠标事件的坐标
+        let clientX, clientY;
+        if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        // 检查是否在出牌区上方
+        const playZone = document.getElementById('play-zone');
+        const playRect = playZone.getBoundingClientRect();
+
+        if (clientY >= playRect.top && clientY <= playRect.bottom &&
+            clientX >= playRect.left && clientX <= playRect.right) {
+            // 计算插入哪个列
+            const gridEl = document.getElementById('play-area-grid');
+            const gridRect = gridEl.getBoundingClientRect();
+            const colWidth = gridRect.width / this.cols;
+            const relativeX = clientX - gridRect.left;
+            const col = Math.floor(relativeX / colWidth);
+
+            if (col >= 0 && col < this.cols) {
+                await this.insertCard(col);
+            }
         }
 
         this.clearDragElements();
@@ -354,8 +451,6 @@ class CardPushGame {
         if (this.selectedHandIndex === -1 || !this.hand[this.selectedHandIndex]) return;
 
         const bottomRow = this.getBottomRow(col);
-
-        this.saveHistory();
 
         const card = this.hand[this.selectedHandIndex];
 
@@ -452,7 +547,7 @@ class CardPushGame {
             setTimeout(() => {
                 animElements.forEach(({ el }) => {
                     el.style.transition = 'all 0.2s ease-out';
-                    el.style.transform = 'translateY(-49px)';
+                    el.style.transform = 'translateY(-43px)';
                 });
             }, 10);
 
@@ -482,13 +577,13 @@ class CardPushGame {
                 <div class="color-picker-content">
                     <div class="color-picker-title">选择彩虹牌颜色</div>
                     <div class="color-picker-options">
-                        <div class="color-option" data-color="1" style="background: linear-gradient(135deg, #ffb3ba 0%, #ff8a95 50%, #ff6b7a 100%);"></div>
-                        <div class="color-option" data-color="2" style="background: linear-gradient(135deg, #ffd8b1 0%, #ffc48c 50%, #ffb366 100%);"></div>
-                        <div class="color-option" data-color="3" style="background: linear-gradient(135deg, #ffffba 0%, #ffff8f 50%, #ffff6b 100%);"></div>
-                        <div class="color-option" data-color="4" style="background: linear-gradient(135deg, #baffc9 0%, #8cffa3 50%, #6bff8a 100%);"></div>
-                        <div class="color-option" data-color="5" style="background: linear-gradient(135deg, #bae1ff 0%, #8fceff 50%, #6bbfff 100%);"></div>
-                        <div class="color-option" data-color="6" style="background: linear-gradient(135deg, #e2baff 0%, #d48cff 50%, #c76bff 100%);"></div>
-                        <div class="color-option" data-color="7" style="background: linear-gradient(135deg, #c9c9ff 0%, #a8a8ff 50%, #8787ff 100%);"></div>
+                        <div class="color-option" data-color="1" style="background: linear-gradient(160deg, #ffcdd2 0%, #ef9a9a 50%, #e57373 100%);"></div>
+                        <div class="color-option" data-color="2" style="background: linear-gradient(160deg, #ffffff 0%, #f5f5f5 50%, #e0e0e0 100%);"></div>
+                        <div class="color-option" data-color="3" style="background: linear-gradient(160deg, #fff9c4 0%, #fff59d 50%, #fff176 100%);"></div>
+                        <div class="color-option" data-color="4" style="background: linear-gradient(160deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%);"></div>
+                        <div class="color-option" data-color="5" style="background: linear-gradient(160deg, #b3e5fc 0%, #81d4fa 50%, #4fc3f7 100%);"></div>
+                        <div class="color-option" data-color="6" style="background: linear-gradient(160deg, #d1c4e9 0%, #b39ddb 50%, #9575cd 100%);"></div>
+                        <div class="color-option" data-color="7" style="background: linear-gradient(160deg, #f8bbd9 0%, #f48fb1 50%, #f06292 100%);"></div>
                     </div>
                     <button class="color-picker-cancel">取消</button>
                 </div>
@@ -585,10 +680,9 @@ class CardPushGame {
                 break;
             }
 
-            // 计算得分和能量
+            // 计算得分（应用关卡倍率）
             const eliminatedCount = match.length;
-            this.score += eliminatedCount * 10;
-            this.energy += Math.floor(eliminatedCount * this.modeConfig.restorePerBlock);
+            this.score += eliminatedCount * 10 * this.scoreMultiplier;
 
             // 播放消除动画
             await this.animateElimination([match]);
@@ -612,11 +706,112 @@ class CardPushGame {
             // 停顿一下再判断下一组
             await this.delay(200);
 
+            // 检查是否有空列，有则左移补齐
+            const emptyCols = this.findEmptyColumns();
+            if (emptyCols.length > 0) {
+                await this.shiftColumnsLeft(emptyCols);
+            }
+
             eliminatedGroups++;
         }
 
         this.isProcessing = false;
         this.checkGameEnd();
+    }
+
+    // 找到所有空列
+    findEmptyColumns() {
+        const emptyCols = [];
+        for (let c = 0; c < this.cols; c++) {
+            let isEmpty = true;
+            for (let r = 0; r < this.rows; r++) {
+                if (this.board[r][c] !== null) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            if (isEmpty) emptyCols.push(c);
+        }
+        return emptyCols;
+    }
+
+    // 左移列补齐
+    async shiftColumnsLeft(emptyCols) {
+        // 从右向左处理，避免索引变化问题
+        emptyCols.sort((a, b) => b - a);
+        
+        for (const emptyCol of emptyCols) {
+            // 动画：右边的列左移
+            await this.animateShiftLeft(emptyCol);
+            
+            // 数据左移
+            for (let c = emptyCol; c < this.cols - 1; c++) {
+                for (let r = 0; r < this.rows; r++) {
+                    this.board[r][c] = this.board[r][c + 1];
+                }
+            }
+            // 最右列置空
+            for (let r = 0; r < this.rows; r++) {
+                this.board[r][this.cols - 1] = null;
+            }
+        }
+        
+        this.renderBoard();
+    }
+
+    // 列左移动画
+    async animateShiftLeft(emptyCol) {
+        return new Promise(resolve => {
+            const cells = document.querySelectorAll('.cell');
+            const animElements = [];
+            
+            // 获取需要左移的列（emptyCol右边的所有列）
+            for (let c = emptyCol + 1; c < this.cols; c++) {
+                for (let r = 0; r < this.rows; r++) {
+                    const cellIndex = r * this.cols + c;
+                    const cell = cells[cellIndex];
+                    if (!cell.classList.contains('empty')) {
+                        const rect = cell.getBoundingClientRect();
+                        const animCard = document.createElement('div');
+                        animCard.className = cell.className;
+                        animCard.style.position = 'fixed';
+                        animCard.style.zIndex = '999';
+                        animCard.style.pointerEvents = 'none';
+                        animCard.style.left = rect.left + 'px';
+                        animCard.style.top = rect.top + 'px';
+                        animCard.style.width = rect.width + 'px';
+                        animCard.style.height = rect.height + 'px';
+                        animCard.style.transition = 'none';
+                        document.body.appendChild(animCard);
+                        animElements.push(animCard);
+                    }
+                    cell.style.opacity = '0';
+                }
+            }
+            
+            if (animElements.length === 0) {
+                resolve();
+                return;
+            }
+            
+            // 强制重绘
+            animElements.forEach(el => el.offsetHeight);
+            
+            // 开始左移动画
+            setTimeout(() => {
+                animElements.forEach(el => {
+                    el.style.transition = 'all 0.25s ease-out';
+                    el.style.transform = 'translateX(-35px)';
+                });
+            }, 10);
+            
+            // 动画结束
+            setTimeout(() => {
+                animElements.forEach(el => el.remove());
+                cells.forEach(cell => cell.style.opacity = '');
+                resolve();
+            }, 260);
+        });
     }
 
     // 找到最下面的一组匹配
@@ -841,32 +1036,6 @@ class CardPushGame {
         setTimeout(() => text.remove(), 1500);
     }
 
-    saveHistory() {
-        if (this.history.length >= 10) this.history.shift();
-        this.history.push({
-            board: this.board.map(row => [...row]),
-            hand: [...this.hand],
-            score: this.score,
-            energy: this.energy
-        });
-        document.getElementById('undo-btn').disabled = false;
-    }
-
-    undo() {
-        if (this.history.length === 0) return;
-        const state = this.history.pop();
-        this.board = state.board;
-        this.hand = state.hand;
-        this.score = state.score;
-        this.energy = state.energy;
-        this.selectedHandIndex = -1;
-        this.clearDragElements();
-        this.renderBoard();
-        this.updateHandUI();
-        this.updateUI();
-        if (this.history.length === 0) document.getElementById('undo-btn').disabled = true;
-    }
-
     checkGameEnd() {
         // 检查是否还有手牌，有手牌时不能结束游戏
         const hasHandCards = this.hand.some(h => h !== null);
@@ -916,20 +1085,36 @@ class CardPushGame {
             return true;
         }
 
-        // 没有能量且没有手牌也是死局
-        if (this.energy < this.modeConfig.drawCost) {
-            return true;
-        }
-
         return false;
     }
 
     endGame(isWin) {
+        const config = this.levels[this.currentLevel - 1];
         document.getElementById('result-icon').textContent = isWin ? '🏆' : '💔';
-        document.getElementById('result-title').textContent = isWin ? '胜利!' : '失败';
+        document.getElementById('result-title').textContent = isWin ? `关卡 ${this.currentLevel} 通关!` : '失败';
         document.getElementById('result-title').style.color = isWin ? '#00d9ff' : '#e94560';
         document.getElementById('final-score').textContent = this.score;
-        document.getElementById('result-stat-value').textContent = this.energy;
+        document.getElementById('result-stat-label').textContent = config.name;
+        document.getElementById('result-stat-value').textContent = isWin ? '✓' : '✗';
+
+        // 解锁下一关
+        if (isWin && this.currentLevel < this.maxLevel) {
+            const nextLevel = this.currentLevel + 1;
+            if (nextLevel > this.unlockedLevel) {
+                this.unlockedLevel = nextLevel;
+                localStorage.setItem('pushpop_unlocked', this.unlockedLevel);
+            }
+        }
+
+        // 更新按钮
+        const playAgainBtn = document.getElementById('play-again-btn');
+        if (isWin && this.currentLevel < this.maxLevel) {
+            playAgainBtn.textContent = '下一关 →';
+            playAgainBtn.onclick = () => this.startGame(this.currentLevel + 1);
+        } else {
+            playAgainBtn.textContent = '再玩一次';
+            playAgainBtn.onclick = () => this.restartGame();
+        }
 
         let stars = isWin ? 3 : 0;
         document.getElementById('star-rating').innerHTML = '';
@@ -943,33 +1128,12 @@ class CardPushGame {
         this.showScreen('result-screen');
     }
 
-    pauseGame() {
-        document.getElementById('pause-screen').classList.add('active');
-    }
-
-    resumeGame() {
-        document.getElementById('pause-screen').classList.remove('active');
-    }
-
     restartGame() {
-        this.startGame();
+        this.startGame(this.currentLevel);
     }
 
     updateUI() {
         document.getElementById('score').textContent = this.score;
-        document.getElementById('mode-stat-value').textContent = this.energy;
-        document.getElementById('mode-stat-value').style.color = this.energy < this.modeConfig.drawCost ? '#e94560' : '#00d9ff';
-    }
-
-    showHint() {
-        const matches = this.findMatches();
-        if (matches.length > 0) {
-            const cells = document.querySelectorAll('.cell');
-            matches[0].forEach(({r, c}) => {
-                cells[r * this.cols + c].classList.add('hint-pulse');
-                setTimeout(() => cells[r * this.cols + c].classList.remove('hint-pulse'), 2000);
-            });
-        }
     }
 
     delay(ms) {
@@ -977,250 +1141,4 @@ class CardPushGame {
     }
 }
 
-// 游戏教程和引导系统
-class GameTutorial {
-    constructor() {
-        this.currentStep = 1;
-        this.totalSteps = 4;
-        this.guideSteps = [
-            {
-                element: '.game-board-container',
-                text: '点击牌堆最下方的卡牌，将其加入你的手牌',
-                position: 'bottom'
-            },
-            {
-                element: '.hand-area',
-                text: '手牌会显示在这里，你可以拖动它们到出牌区',
-                position: 'top'
-            },
-            {
-                element: '.play-area',
-                text: '将卡牌拖动到这里，插入任意列的底部',
-                position: 'top'
-            },
-            {
-                element: '.stats',
-                text: '注意你的能量值，抽牌会消耗能量，消除会恢复能量',
-                position: 'bottom'
-            }
-        ];
-        this.currentGuideStep = 0;
-        this.init();
-    }
-
-    init() {
-        this.bindTutorialEvents();
-        this.checkFirstTimeUser();
-    }
-
-    bindTutorialEvents() {
-        // 教程入口按钮
-        const tutorialBtn = document.getElementById('tutorial-btn');
-        if (tutorialBtn) {
-            tutorialBtn.addEventListener('click', () => this.showTutorial());
-        }
-
-        // 教程导航按钮
-        const prevBtn = document.getElementById('tutorial-prev');
-        const nextBtn = document.getElementById('tutorial-next');
-        const closeBtn = document.getElementById('tutorial-close');
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => this.prevStep());
-        }
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => this.nextStep());
-        }
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closeTutorial());
-        }
-
-        // 引导下一步按钮
-        const guideNextBtn = document.querySelector('.guide-next-btn');
-        if (guideNextBtn) {
-            guideNextBtn.addEventListener('click', () => this.nextGuideStep());
-        }
-    }
-
-    checkFirstTimeUser() {
-        const hasSeenTutorial = localStorage.getItem('cardPushTutorialSeen');
-        if (!hasSeenTutorial) {
-            // 首次用户，标记为已看过教程
-            localStorage.setItem('cardPushTutorialSeen', 'true');
-        }
-    }
-
-    showTutorial() {
-        this.currentStep = 1;
-        this.updateTutorialUI();
-        document.getElementById('tutorial-screen').classList.add('active');
-    }
-
-    closeTutorial() {
-        document.getElementById('tutorial-screen').classList.remove('active');
-    }
-
-    nextStep() {
-        if (this.currentStep < this.totalSteps) {
-            this.currentStep++;
-            this.updateTutorialUI();
-        } else {
-            this.closeTutorial();
-        }
-    }
-
-    prevStep() {
-        if (this.currentStep > 1) {
-            this.currentStep--;
-            this.updateTutorialUI();
-        }
-    }
-
-    updateTutorialUI() {
-        // 更新步骤显示
-        document.querySelectorAll('.tutorial-step').forEach((step, index) => {
-            step.classList.toggle('active', index + 1 === this.currentStep);
-        });
-
-        // 更新导航点
-        document.querySelectorAll('.dot').forEach((dot, index) => {
-            dot.classList.toggle('active', index + 1 === this.currentStep);
-        });
-
-        // 更新按钮状态
-        const prevBtn = document.getElementById('tutorial-prev');
-        const nextBtn = document.getElementById('tutorial-next');
-
-        if (prevBtn) {
-            prevBtn.disabled = this.currentStep === 1;
-        }
-        if (nextBtn) {
-            nextBtn.textContent = this.currentStep === this.totalSteps ? '开始游戏' : '下一步';
-        }
-    }
-
-    // 首次游戏引导
-    startFirstTimeGuide() {
-        const hasSeenGuide = localStorage.getItem('cardPushGuideSeen');
-        if (hasSeenGuide) return;
-
-        this.currentGuideStep = 0;
-        this.showGuideStep();
-    }
-
-    showGuideStep() {
-        const overlay = document.getElementById('first-time-guide');
-        const tooltip = document.getElementById('guide-tooltip');
-        const highlight = document.querySelector('.guide-highlight');
-
-        if (this.currentGuideStep >= this.guideSteps.length) {
-            this.endGuide();
-            return;
-        }
-
-        const step = this.guideSteps[this.currentGuideStep];
-        const targetEl = document.querySelector(step.element);
-
-        if (!targetEl) {
-            this.nextGuideStep();
-            return;
-        }
-
-        // 显示遮罩
-        overlay.classList.add('active');
-
-        // 设置高亮区域
-        const rect = targetEl.getBoundingClientRect();
-        highlight.style.left = (rect.left - 8) + 'px';
-        highlight.style.top = (rect.top - 8) + 'px';
-        highlight.style.width = (rect.width + 16) + 'px';
-        highlight.style.height = (rect.height + 16) + 'px';
-
-        // 设置提示文本
-        const textEl = tooltip.querySelector('.guide-text');
-        textEl.textContent = step.text;
-
-        // 设置提示位置
-        tooltip.className = 'guide-tooltip ' + step.position;
-
-        // 计算提示位置
-        let tooltipLeft, tooltipTop;
-        const tooltipRect = tooltip.getBoundingClientRect();
-
-        switch (step.position) {
-            case 'top':
-                tooltipLeft = rect.left + rect.width / 2 - tooltipRect.width / 2;
-                tooltipTop = rect.top - tooltipRect.height - 16;
-                break;
-            case 'bottom':
-                tooltipLeft = rect.left + rect.width / 2 - tooltipRect.width / 2;
-                tooltipTop = rect.bottom + 16;
-                break;
-            case 'left':
-                tooltipLeft = rect.left - tooltipRect.width - 16;
-                tooltipTop = rect.top + rect.height / 2 - tooltipRect.height / 2;
-                break;
-            case 'right':
-                tooltipLeft = rect.right + 16;
-                tooltipTop = rect.top + rect.height / 2 - tooltipRect.height / 2;
-                break;
-        }
-
-        // 边界检查
-        tooltipLeft = Math.max(10, Math.min(tooltipLeft, window.innerWidth - tooltipRect.width - 10));
-        tooltipTop = Math.max(10, Math.min(tooltipTop, window.innerHeight - tooltipRect.height - 10));
-
-        tooltip.style.left = tooltipLeft + 'px';
-        tooltip.style.top = tooltipTop + 'px';
-
-        // 更新按钮文本
-        const nextBtn = tooltip.querySelector('.guide-next-btn');
-        nextBtn.textContent = this.currentGuideStep === this.guideSteps.length - 1 ? '开始游戏' : '下一步';
-    }
-
-    nextGuideStep() {
-        this.currentGuideStep++;
-        if (this.currentGuideStep >= this.guideSteps.length) {
-            this.endGuide();
-        } else {
-            this.showGuideStep();
-        }
-    }
-
-    endGuide() {
-        const overlay = document.getElementById('first-time-guide');
-        overlay.classList.remove('active');
-        localStorage.setItem('cardPushGuideSeen', 'true');
-    }
-
-    // 显示游戏提示
-    showGameHint(message, duration = 2000) {
-        let hintEl = document.querySelector('.game-hint');
-        if (!hintEl) {
-            hintEl = document.createElement('div');
-            hintEl.className = 'game-hint';
-            document.body.appendChild(hintEl);
-        }
-
-        hintEl.textContent = message;
-        hintEl.classList.add('show');
-
-        setTimeout(() => {
-            hintEl.classList.remove('show');
-        }, duration);
-    }
-}
-
-// 初始化游戏和教程
-const game = new CardPushGame();
-const tutorial = new GameTutorial();
-
-// 在游戏开始时检查是否需要显示引导
-const originalStartGame = game.startGame.bind(game);
-game.startGame = async function() {
-    await originalStartGame();
-    // 延迟显示引导，等待界面渲染完成
-    setTimeout(() => {
-        tutorial.startFirstTimeGuide();
-    }, 500);
-};
+new CardPushGame();
