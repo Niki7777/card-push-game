@@ -590,28 +590,47 @@ class CardPushGame {
             `;
             document.body.appendChild(picker);
 
-            // 绑定颜色选择事件
+            // 绑定颜色选择事件（支持鼠标和触摸）
             picker.querySelectorAll('.color-option').forEach(option => {
-                option.addEventListener('click', () => {
+                const selectColor = () => {
                     const color = option.dataset.color;
                     picker.remove();
                     resolve(parseInt(color));
-                });
+                };
+                option.addEventListener('click', selectColor);
+                option.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    selectColor();
+                }, { passive: false });
             });
 
-            // 绑定取消事件
-            picker.querySelector('.color-picker-cancel').addEventListener('click', () => {
+            // 绑定取消事件（支持鼠标和触摸）
+            const cancelBtn = picker.querySelector('.color-picker-cancel');
+            const cancelPicker = () => {
                 picker.remove();
                 resolve(null);
-            });
+            };
+            cancelBtn.addEventListener('click', cancelPicker);
+            cancelBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                cancelPicker();
+            }, { passive: false });
 
-            // 点击背景取消
-            picker.addEventListener('click', (e) => {
+            // 点击背景取消（支持鼠标和触摸）
+            const bgCancel = (e) => {
                 if (e.target === picker) {
                     picker.remove();
                     resolve(null);
                 }
-            });
+            };
+            picker.addEventListener('click', bgCancel);
+            picker.addEventListener('touchstart', (e) => {
+                if (e.target === picker) {
+                    e.preventDefault();
+                    picker.remove();
+                    resolve(null);
+                }
+            }, { passive: false });
         });
     }
 
