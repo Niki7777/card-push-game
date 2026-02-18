@@ -3,7 +3,6 @@ class CardPushGame {
         this.rows = 10;
         this.cols = 8;
         this.colors = 7;
-        this.rainbowCount = 4;
         this.board = [];
         this.hand = [null, null];
         this.selectedHandIndex = -1;
@@ -151,7 +150,7 @@ class CardPushGame {
     }
 
     generateBoard() {
-        const totalCells = this.rows * this.cols - this.rainbowCount;
+        const totalCells = this.rows * this.cols;
         const colorCounts = {};
 
         for (let i = 1; i <= this.colors; i++) {
@@ -171,7 +170,6 @@ class CardPushGame {
         for (let i = 1; i <= this.colors; i++) {
             for (let j = 0; j < colorCounts[i]; j++) colorPool.push(i);
         }
-        for (let i = 0; i < this.rainbowCount; i++) colorPool.push('rainbow');
 
         for (let i = colorPool.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -454,19 +452,6 @@ class CardPushGame {
 
         const card = this.hand[this.selectedHandIndex];
 
-        // 如果是彩虹牌，需要选择颜色
-        let finalColor = card.color;
-        if (card.color === 'rainbow') {
-            const selectedColor = await this.showColorPicker();
-            if (!selectedColor) {
-                // 用户取消选择，恢复手牌
-                this.selectedHandIndex = -1;
-                this.clearDragElements();
-                return;
-            }
-            finalColor = selectedColor;
-        }
-
         // 获取出牌区位置作为动画起始点
         const playAreaCell = document.querySelectorAll('.play-area-cell')[col];
         const startRect = playAreaCell.getBoundingClientRect();
@@ -483,7 +468,7 @@ class CardPushGame {
         await this.delay(100);
 
         // 2. 再执行出牌动画（从出牌区移动到牌堆底部）
-        const playCardAnim = await this.animatePlayCard(startRect, targetRect, finalColor);
+        const playCardAnim = await this.animatePlayCard(startRect, targetRect, card.color);
 
         // 停顿一下
         await this.delay(100);
@@ -494,7 +479,7 @@ class CardPushGame {
 
         // 数据操作：该列上移并插入新牌
         this.shiftColumnUp(col);
-        this.board[this.rows - 1][col] = finalColor;
+        this.board[this.rows - 1][col] = card.color;
 
         // 清空手牌槽位
         this.hand[this.selectedHandIndex] = null;
@@ -566,72 +551,6 @@ class CardPushGame {
         }
         // 恢复所有格子的透明度
         document.querySelectorAll('.cell').forEach(cell => cell.style.opacity = '');
-    }
-
-    showColorPicker() {
-        return new Promise(resolve => {
-            // 创建颜色选择弹窗
-            const picker = document.createElement('div');
-            picker.className = 'color-picker-overlay';
-            picker.innerHTML = `
-                <div class="color-picker-content">
-                    <div class="color-picker-title">选择彩虹牌颜色</div>
-                    <div class="color-picker-options">
-                        <div class="color-option" data-color="1" style="background: linear-gradient(160deg, #ffcdd2 0%, #ef9a9a 50%, #e57373 100%);"></div>
-                        <div class="color-option" data-color="2" style="background: linear-gradient(160deg, #ffffff 0%, #f5f5f5 50%, #e0e0e0 100%);"></div>
-                        <div class="color-option" data-color="3" style="background: linear-gradient(160deg, #fff9c4 0%, #fff59d 50%, #fff176 100%);"></div>
-                        <div class="color-option" data-color="4" style="background: linear-gradient(160deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%);"></div>
-                        <div class="color-option" data-color="5" style="background: linear-gradient(160deg, #b3e5fc 0%, #81d4fa 50%, #4fc3f7 100%);"></div>
-                        <div class="color-option" data-color="6" style="background: linear-gradient(160deg, #d1c4e9 0%, #b39ddb 50%, #9575cd 100%);"></div>
-                        <div class="color-option" data-color="7" style="background: linear-gradient(160deg, #f8bbd9 0%, #f48fb1 50%, #f06292 100%);"></div>
-                    </div>
-                    <button class="color-picker-cancel">取消</button>
-                </div>
-            `;
-            document.body.appendChild(picker);
-
-            // 绑定颜色选择事件（支持鼠标和触摸）
-            picker.querySelectorAll('.color-option').forEach(option => {
-                const selectColor = () => {
-                    const color = option.dataset.color;
-                    picker.remove();
-                    resolve(parseInt(color));
-                };
-                option.addEventListener('click', selectColor);
-                option.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    selectColor();
-                }, { passive: false });
-            });
-
-            // 绑定取消事件（支持鼠标和触摸）
-            const cancelBtn = picker.querySelector('.color-picker-cancel');
-            const cancelPicker = () => {
-                picker.remove();
-                resolve(null);
-            };
-            cancelBtn.addEventListener('click', cancelPicker);
-            cancelBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                cancelPicker();
-            }, { passive: false });
-
-            // 点击背景取消（支持鼠标和触摸）
-            const bgCancel = (e) => {
-                if (e.target === picker) {
-                    picker.remove();
-                    resolve(null);
-                }
-            };
-            picker.addEventListener('click', bgCancel);
-            picker.addEventListener('touchstart', (e) => {
-                if (e.target === picker) {
-                    e.preventDefault();
-                    picker.remove();
-                    resolve(null);
-                }
-            }, { passive: false });
-        });
     }
 
     animatePlayCard(startRect, targetRect, color) {
@@ -846,9 +765,6 @@ class CardPushGame {
 
                 const color = this.board[r][c];
 
-                // 彩虹牌不自动消除
-                if (color === 'rainbow') continue;
-
                 const group = [];
                 const queue = [{r, c}];
                 visited.add(key);
@@ -863,9 +779,6 @@ class CardPushGame {
                         if (nc >= 0 && nc < this.cols && this.board[nr] && this.board[nr][nc] !== null) {
                             const nKey = `${nr},${nc}`;
                             const neighborColor = this.board[nr][nc];
-
-                            // 彩虹牌不参与自动匹配
-                            if (neighborColor === 'rainbow') continue;
 
                             if (!visited.has(nKey) && this.canMatch(color, neighborColor)) {
                                 visited.add(nKey);
@@ -984,8 +897,6 @@ class CardPushGame {
                 const color = this.board[r][c];
 
                 // 彩虹牌永远不自动消除
-                if (color === 'rainbow') continue;
-
                 const group = [];
                 const queue = [{r, c}];
                 visited.add(key);
@@ -1000,9 +911,6 @@ class CardPushGame {
                         if (nc >= 0 && nc < this.cols && this.board[nr] && this.board[nr][nc] !== null) {
                             const nKey = `${nr},${nc}`;
                             const neighborColor = this.board[nr][nc];
-
-                            // 彩虹牌不参与自动匹配
-                            if (neighborColor === 'rainbow') continue;
 
                             if (!visited.has(nKey) && this.canMatch(color, neighborColor)) {
                                 visited.add(nKey);
@@ -1021,8 +929,6 @@ class CardPushGame {
 
     canMatch(color1, color2) {
         if (color1 === null || color2 === null) return false;
-        // 自动消除时，彩虹牌不能匹配（彩虹牌只能由玩家主动打出时消除）
-        if (color1 === 'rainbow' || color2 === 'rainbow') return false;
         return color1 === color2;
     }
 
